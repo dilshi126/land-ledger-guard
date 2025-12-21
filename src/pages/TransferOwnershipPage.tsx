@@ -17,23 +17,26 @@ const TransferOwnershipPage = () => {
   const [newDeedNumber, setNewDeedNumber] = useState('');
 
   useEffect(() => {
-    if (deedNumber) {
-      const deed = getDeed(deedNumber);
-      if (deed && deed.status === 'ACTIVE') {
-        setSourceDeed(deed);
-        // Generate new deed number
-        const timestamp = Date.now().toString(36).toUpperCase();
-        const random = Math.random().toString(36).substring(2, 7).toUpperCase();
-        setNewDeedNumber(`DEED-${timestamp}-${random}`);
-      } else {
-        toast({
-          title: "Error",
-          description: "Invalid or inactive deed number.",
-          variant: "destructive",
-        });
-        navigate('/verify');
+    const fetchDeed = async () => {
+      if (deedNumber) {
+        const deed = await getDeed(deedNumber);
+        if (deed && deed.status === 'ACTIVE') {
+          setSourceDeed(deed);
+          // Generate new deed number
+          const timestamp = Date.now().toString(36).toUpperCase();
+          const random = Math.random().toString(36).substring(2, 7).toUpperCase();
+          setNewDeedNumber(`DEED-${timestamp}-${random}`);
+        } else {
+          toast({
+            title: "Error",
+            description: "Invalid or inactive deed number.",
+            variant: "destructive",
+          });
+          navigate('/verify');
+        }
       }
-    }
+    };
+    fetchDeed();
   }, [deedNumber, navigate, toast]);
 
   const handleTransfer = async (data: Deed, ownerData?: Owner) => {
@@ -41,15 +44,15 @@ const TransferOwnershipPage = () => {
     try {
       // Register owner if provided and doesn't exist
       if (ownerData && ownerData.nic) {
-        const existingOwner = getOwner(ownerData.nic);
+        const existingOwner = await getOwner(ownerData.nic);
         if (!existingOwner) {
-            registerOwner(ownerData);
+            await registerOwner(ownerData);
         }
       }
 
       // We need to omit status and previousDeedNumber as they are handled by transferOwnership
       const { status, previousDeedNumber, ...transferData } = data;
-      transferOwnership(sourceDeed.deedNumber, transferData);
+      await transferOwnership(sourceDeed.deedNumber, transferData);
       toast({
         title: "Success",
         description: `Ownership transferred to new deed ${data.deedNumber}.`,

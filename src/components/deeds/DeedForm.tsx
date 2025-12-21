@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Deed, Owner } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,15 @@ export function DeedForm({ onSubmit, onCancel, isLoading = false, initialData }:
   const [isExistingOwner, setIsExistingOwner] = useState(false);
   const [filteredOwners, setFilteredOwners] = useState<Owner[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [allOwners, setAllOwners] = useState<Owner[]>([]);
+
+  useEffect(() => {
+    const loadOwners = async () => {
+      const owners = await getAllOwners();
+      setAllOwners(owners);
+    };
+    loadOwners();
+  }, []);
 
   const generateDeedId = () => {
     const timestamp = Date.now().toString(36).toUpperCase();
@@ -50,7 +59,7 @@ export function DeedForm({ onSubmit, onCancel, isLoading = false, initialData }:
         setOwnerData(prev => ({ ...prev, nic }));
         
         // Auto-fill if owner exists
-        const existingOwner = getOwner(nic);
+        const existingOwner = allOwners.find(o => o.nic === nic);
         if (existingOwner) {
             setOwnerData(existingOwner);
             setIsExistingOwner(true);
@@ -69,7 +78,6 @@ export function DeedForm({ onSubmit, onCancel, isLoading = false, initialData }:
 
         // Filter owners for suggestions
         if (nic.trim()) {
-            const allOwners = getAllOwners();
             const matches = allOwners.filter(o => 
                 o.nic.toLowerCase().includes(nic.toLowerCase()) || 
                 o.fullName.toLowerCase().includes(nic.toLowerCase())
@@ -82,7 +90,7 @@ export function DeedForm({ onSubmit, onCancel, isLoading = false, initialData }:
         }
 
         // Auto-fill if owner exists (exact match)
-        const existingOwner = getOwner(nic);
+        const existingOwner = allOwners.find(o => o.nic === nic);
         if (existingOwner) {
             setOwnerData(existingOwner);
             setIsExistingOwner(true);
@@ -207,7 +215,6 @@ export function DeedForm({ onSubmit, onCancel, isLoading = false, initialData }:
                 autoComplete="off"
                 onFocus={() => {
                     if (ownerData.nic) {
-                        const allOwners = getAllOwners();
                         const matches = allOwners.filter(o => 
                             o.nic.toLowerCase().includes(ownerData.nic.toLowerCase()) || 
                             o.fullName.toLowerCase().includes(ownerData.nic.toLowerCase())

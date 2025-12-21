@@ -46,7 +46,11 @@ export function DeedRegistrationWizard({ onSuccess }: DeedRegistrationWizardProp
   });
 
   useEffect(() => {
-    setOwners(getAllOwners());
+    const fetchOwners = async () => {
+      const allOwners = await getAllOwners();
+      setOwners(allOwners);
+    };
+    fetchOwners();
   }, []);
 
   useEffect(() => {
@@ -127,7 +131,7 @@ export function DeedRegistrationWizard({ onSuccess }: DeedRegistrationWizardProp
       // The requirement says "Land & Deed Registration", implying both.
       
       try {
-        registerLand(landData);
+        await registerLand(landData);
       } catch (e) {
         // Ignore if land already exists? Or fail? 
         // If land exists, we probably just want to link the deed to it.
@@ -141,7 +145,7 @@ export function DeedRegistrationWizard({ onSuccess }: DeedRegistrationWizardProp
         ownerNic: selectedOwner!.nic
       };
 
-      registerDeed(finalDeedData);
+      await registerDeed(finalDeedData);
       
       setShowConfirmDialog(false);
       setShowSuccessDialog(true);

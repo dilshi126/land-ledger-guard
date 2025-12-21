@@ -22,7 +22,7 @@ const VerifyPage = () => {
   const [deedResult, setDeedResult] = useState<{ deed: Deed, owner: Owner | undefined, land: Land | undefined, history: Deed[] } | null>(null);
   const [error, setError] = useState('');
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLandResult(null);
@@ -31,24 +31,24 @@ const VerifyPage = () => {
     if (!searchQuery.trim()) return;
 
     if (searchType === 'land') {
-      const land = getLand(searchQuery);
+      const land = await getLand(searchQuery);
       if (land) {
-        const history = getOwnershipHistory(searchQuery);
+        const history = await getOwnershipHistory(searchQuery);
         const currentDeed = history.find(d => d.status === 'ACTIVE');
         let currentOwner: Owner | undefined;
         if (currentDeed) {
-            currentOwner = getOwner(currentDeed.ownerNic);
+            currentOwner = await getOwner(currentDeed.ownerNic);
         }
         setLandResult({ land, history, currentDeed, currentOwner });
       } else {
         setError(`Land with number ${searchQuery} not found.`);
       }
     } else {
-      const deed = getDeed(searchQuery);
+      const deed = await getDeed(searchQuery);
       if (deed) {
-        const owner = getOwner(deed.ownerNic);
-        const land = getLand(deed.landNumber);
-        const history = getOwnershipHistory(deed.landNumber);
+        const owner = await getOwner(deed.ownerNic);
+        const land = await getLand(deed.landNumber);
+        const history = await getOwnershipHistory(deed.landNumber);
         setDeedResult({ deed, owner, land, history });
       } else {
         setError(`Deed with number ${searchQuery} not found.`);

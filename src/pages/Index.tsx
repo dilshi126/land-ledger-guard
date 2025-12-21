@@ -21,10 +21,17 @@ const Index = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      initializeSampleData();
-      setDeeds(getAllDeeds());
-      setLogs(getAuditLogs());
-      setIsLoading(false);
+      try {
+        await initializeSampleData();
+        const allDeeds = await getAllDeeds();
+        setDeeds(allDeeds);
+        const allLogs = await getAuditLogs();
+        setLogs(allLogs);
+      } catch (error) {
+        console.error("Failed to load data:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
     loadData();
   }, []);
