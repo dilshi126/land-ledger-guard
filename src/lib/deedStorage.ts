@@ -118,6 +118,8 @@ export function transferOwnership(oldDeedNumber: string, newDeedDetails: Omit<De
     ...newDeedDetails,
     status: 'ACTIVE',
     previousDeedNumber: oldDeedNumber,
+    previousOwnerNic: deeds[oldDeedIndex].ownerNic,
+    previousRegistrationDate: deeds[oldDeedIndex].registrationDate,
   };
 
   if (deeds.some(d => d.deedNumber === newDeed.deedNumber)) {
@@ -169,6 +171,12 @@ export function initializeSampleData() {
       fullName: 'John Doe',
       address: '123 Main St, Colombo',
       contactNumber: '0771234567'
+    });
+    registerOwner({
+      nic: '200111800123',
+      fullName: 'Nadun Daluwatta',
+      address: 'Ukuwela, Matale',
+      contactNumber: '0706036990'
     });
     registerDeed({
       deedNumber: 'D001',
