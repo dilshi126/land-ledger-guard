@@ -5,8 +5,7 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { href: '/', label: 'Dashboard', icon: Shield },
   { href: '/deeds', label: 'Deed Records', icon: Database },
-  { href: '/verify', label: 'Verify Deed', icon: FileCheck },
-  { href: '/blockchain', label: 'On-Chain Registry', icon: Link2 },
+  { href: '/verify', label: 'Search', icon: FileCheck },
 ];
 
 export function Header() {

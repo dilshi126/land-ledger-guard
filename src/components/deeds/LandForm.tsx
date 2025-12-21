@@ -1,29 +1,26 @@
 import { useState } from 'react';
-import { Deed } from '@/lib/types';
+import { Land } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FileText, Save } from 'lucide-react';
+import { MapPin, Save } from 'lucide-react';
 
-interface DeedFormProps {
-  onSubmit: (data: Deed) => Promise<void>;
+interface LandFormProps {
+  onSubmit: (data: Land) => Promise<void>;
   onCancel?: () => void;
   isLoading?: boolean;
-  initialData?: Partial<Deed>;
 }
 
-export function DeedForm({ onSubmit, onCancel, isLoading = false, initialData }: DeedFormProps) {
-  const [formData, setFormData] = useState<Deed>({
-    deedNumber: '',
+export function LandForm({ onSubmit, onCancel, isLoading = false }: LandFormProps) {
+  const [formData, setFormData] = useState<Land>({
     landNumber: '',
-    ownerNic: '',
-    registrationDate: new Date().toISOString().split('T')[0],
-    deedType: '',
-    status: 'ACTIVE',
-    ...initialData,
+    district: '',
+    division: '',
+    area: '',
+    mapReference: '',
   });
 
-  const handleChange = (field: keyof Deed) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (field: keyof Land) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [field]: e.target.value }));
   };
 
@@ -36,22 +33,11 @@ export function DeedForm({ onSubmit, onCancel, isLoading = false, initialData }:
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
         <h4 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
-          <FileText className="h-5 w-5 text-primary" />
-          Deed Details
+          <MapPin className="h-5 w-5 text-primary" />
+          Land Details
         </h4>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="deedNumber">Deed Number *</Label>
-            <Input
-              id="deedNumber"
-              value={formData.deedNumber}
-              onChange={handleChange('deedNumber')}
-              placeholder="e.g., D001"
-              required
-            />
-          </div>
-          
           <div>
             <Label htmlFor="landNumber">Land Number *</Label>
             <Input
@@ -64,34 +50,45 @@ export function DeedForm({ onSubmit, onCancel, isLoading = false, initialData }:
           </div>
           
           <div>
-            <Label htmlFor="ownerNic">Owner NIC *</Label>
+            <Label htmlFor="district">District *</Label>
             <Input
-              id="ownerNic"
-              value={formData.ownerNic}
-              onChange={handleChange('ownerNic')}
-              placeholder="e.g., 123456789V"
+              id="district"
+              value={formData.district}
+              onChange={handleChange('district')}
+              placeholder="e.g., Colombo"
               required
             />
           </div>
           
           <div>
-            <Label htmlFor="deedType">Deed Type *</Label>
+            <Label htmlFor="division">Division *</Label>
             <Input
-              id="deedType"
-              value={formData.deedType}
-              onChange={handleChange('deedType')}
-              placeholder="e.g., Gift, Sale"
+              id="division"
+              value={formData.division}
+              onChange={handleChange('division')}
+              placeholder="e.g., Colombo 1"
               required
             />
           </div>
           
           <div>
-            <Label htmlFor="registrationDate">Registration Date *</Label>
+            <Label htmlFor="area">Area *</Label>
             <Input
-              id="registrationDate"
-              type="date"
-              value={formData.registrationDate}
-              onChange={handleChange('registrationDate')}
+              id="area"
+              value={formData.area}
+              onChange={handleChange('area')}
+              placeholder="e.g., 10 Perches"
+              required
+            />
+          </div>
+          
+          <div className="md:col-span-2">
+            <Label htmlFor="mapReference">Map Reference *</Label>
+            <Input
+              id="mapReference"
+              value={formData.mapReference}
+              onChange={handleChange('mapReference')}
+              placeholder="e.g., M-101"
               required
             />
           </div>
@@ -106,7 +103,7 @@ export function DeedForm({ onSubmit, onCancel, isLoading = false, initialData }:
         )}
         <Button type="submit" disabled={isLoading} className="gap-2">
           <Save className="h-4 w-4" />
-          {isLoading ? 'Saving...' : 'Register Deed'}
+          {isLoading ? 'Saving...' : 'Register Land'}
         </Button>
       </div>
     </form>
