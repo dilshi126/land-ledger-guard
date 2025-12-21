@@ -1,235 +1,313 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Header } from '@/components/layout/Header';
-import { VerificationResult } from '@/components/verify/VerificationResult';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getAllDeeds, verifyDeed, initializeSampleData } from '@/lib/deedStorage';
-import { StoredDeed } from '@/lib/hashUtils';
-import { toast } from 'sonner';
-import { 
-  Search, 
-  FileSearch, 
-  Shield, 
-  Hash,
-  ChevronRight
-} from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getLand, getDeed, getOwnershipHistory, getOwner, transferOwnership } from '@/lib/deedStorage';
+import { Land, Deed, Owner } from '@/lib/types';
+import { Search, MapPin, FileText, History, ArrowRightLeft } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DeedForm } from '@/components/deeds/DeedForm';
+import { useToast } from '@/components/ui/use-toast';
 
 const VerifyPage = () => {
-  const [deeds, setDeeds] = useState<StoredDeed[]>([]);
-  const [selectedDeedId, setSelectedDeedId] = useState<string>('');
+  const { toast } = useToast();
+  const [searchType, setSearchType] = useState<'land' | 'deed'>('land');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationResult, setVerificationResult] = useState<{
-    isValid: boolean;
-    currentHash: string;
-    storedHash: string;
-    deedNumber: string;
-  } | null>(null);
+  const [landResult, setLandResult] = useState<{ land: Land, history: Deed[] } | null>(null);
+  const [deedResult, setDeedResult] = useState<{ deed: Deed, owner: Owner | undefined, land: Land | undefined } | null>(null);
+  const [error, setError] = useState('');
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
 
-  useEffect(() => {
-    const loadData = async () => {
-      await initializeSampleData();
-      setDeeds(getAllDeeds());
-    };
-    loadData();
-  }, []);
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLandResult(null);
+    setDeedResult(null);
 
-  const filteredDeeds = deeds.filter(deed =>
-    deed.deedNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    deed.ownerName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    if (!searchQuery.trim()) return;
 
-  const handleVerify = async () => {
-    if (!selectedDeedId) {
-      toast.error('Please select a deed to verify');
-      return;
+    if (searchType === 'land') {
+      const land = getLand(searchQuery);
+      if (land) {
+        const history = getOwnershipHistory(searchQuery);
+        setLandResult({ land, history });
+      } else {
+        setError(`Land with number ${searchQuery} not found.`);
+      }
+    } else {
+      const deed = getDeed(searchQuery);
+      if (deed) {
+        const owner = getOwner(deed.ownerNic);
+        const land = getLand(deed.landNumber);
+        setDeedResult({ deed, owner, land });
+      } else {
+        setError(`Deed with number ${searchQuery} not found.`);
+      }
     }
-
-    setIsVerifying(true);
-    setVerificationResult(null);
-
-    try {
-      // Simulate processing delay for effect
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const result = await verifyDeed(selectedDeedId);
-      const deed = deeds.find(d => d.id === selectedDeedId);
-      
-      setVerificationResult({
-        ...result,
-        deedNumber: deed?.deedNumber || ''
-      });
-
-      // Update deeds list
-      setDeeds(getAllDeeds());
-    } catch (error) {
-      toast.error('Verification failed');
-    }
-
-    setIsVerifying(false);
   };
 
-  const selectedDeed = deeds.find(d => d.id === selectedDeedId);
+  const handleTransfer = async (data: Deed) => {
+    if (!deedResult) return;
+    try {
+      // We need to omit status and previousDeedNumber as they are handled by transferOwnership
+      const { status, previousDeedNumber, ...transferData } = data;
+      transferOwnership(deedResult.deed.deedNumber, transferData);
+      toast({
+        title: "Success",
+        description: `Ownership transferred to new deed ${data.deedNumber}.`,
+      });
+      setIsTransferOpen(false);
+      // Refresh search result
+      const updatedDeed = getDeed(deedResult.deed.deedNumber); // This will be the OLD deed, now TRANSFERRED
+      if (updatedDeed) {
+         const owner = getOwner(updatedDeed.ownerNic);
+         const land = getLand(updatedDeed.landNumber);
+         setDeedResult({ deed: updatedDeed, owner, land });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
       <main className="container py-8">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
-              <FileSearch className="h-7 w-7" />
-            </div>
-          </div>
-          <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-3">
-            Verify Deed Integrity
+        <div className="mb-8 text-center">
+          <h1 className="font-display text-3xl font-bold text-foreground mb-2">
+            Search
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Select a deed to verify its data integrity. The system will recompute the hash 
-            from current data and compare it with the on-chain stored hash.
+          <p className="text-muted-foreground">
+            Search for land records and deed information.
           </p>
         </div>
 
-        <div className="max-w-3xl mx-auto">
-          {/* Selection Card */}
-          <div className="rounded-xl border border-border bg-card p-8 shadow-card mb-8">
-            <h2 className="font-display text-xl font-semibold text-foreground mb-6 flex items-center gap-2">
-              <Search className="h-5 w-5 text-primary" />
-              Select Deed to Verify
-            </h2>
-
-            <div className="space-y-4">
-              {/* Search Filter */}
-              <div>
-                <Label htmlFor="search">Search Deeds</Label>
-                <Input
-                  id="search"
-                  placeholder="Type deed number or owner name..."
+        <div className="max-w-2xl mx-auto mb-10">
+          <Tabs defaultValue="land" onValueChange={(v) => setSearchType(v as 'land' | 'deed')}>
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="land">Search by Land Number</TabsTrigger>
+              <TabsTrigger value="deed">Search by Deed Number</TabsTrigger>
+            </TabsList>
+            
+            <form onSubmit={handleSearch} className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder={searchType === 'land' ? "Enter Land Number (e.g. L001)" : "Enter Deed Number (e.g. D001)"}
+                  className="pl-9"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="mt-1.5"
                 />
               </div>
+              <Button type="submit">Search</Button>
+            </form>
+          </Tabs>
 
-              {/* Deed Selection */}
-              <div>
-                <Label htmlFor="deed-select">Select Deed</Label>
-                <Select value={selectedDeedId} onValueChange={setSelectedDeedId}>
-                  <SelectTrigger className="mt-1.5 h-12">
-                    <SelectValue placeholder="Choose a deed to verify..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredDeeds.length === 0 ? (
-                      <div className="p-4 text-center text-sm text-muted-foreground">
-                        No deeds found
-                      </div>
-                    ) : (
-                      filteredDeeds.map((deed) => (
-                        <SelectItem key={deed.id} value={deed.id}>
-                          <div className="flex items-center gap-3">
-                            <span className="font-mono text-sm">{deed.deedNumber}</span>
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">{deed.ownerName}</span>
-                          </div>
-                        </SelectItem>
-                      ))
+          {error && (
+            <div className="mt-4 p-4 bg-destructive/10 text-destructive rounded-lg text-center">
+              {error}
+            </div>
+          )}
+        </div>
+
+        {landResult && (
+          <div className="space-y-6 max-w-4xl mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  Land Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Land Number</Label>
+                  <div className="font-medium">{landResult.land.landNumber}</div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">District</Label>
+                  <div className="font-medium">{landResult.land.district}</div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Division</Label>
+                  <div className="font-medium">{landResult.land.division}</div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Area</Label>
+                  <div className="font-medium">{landResult.land.area}</div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Map Reference</Label>
+                  <div className="font-medium">{landResult.land.mapReference}</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5 text-primary" />
+                  Ownership History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Deed Number</TableHead>
+                      <TableHead>Owner NIC</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {landResult.history.map((deed) => (
+                      <TableRow key={deed.deedNumber}>
+                        <TableCell>{new Date(deed.registrationDate).toLocaleDateString()}</TableCell>
+                        <TableCell className="font-medium">{deed.deedNumber}</TableCell>
+                        <TableCell>{deed.ownerNic}</TableCell>
+                        <TableCell>{deed.deedType}</TableCell>
+                        <TableCell>
+                          <Badge variant={deed.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                            {deed.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {landResult.history.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                          No history found.
+                        </TableCell>
+                      </TableRow>
                     )}
-                  </SelectContent>
-                </Select>
-              </div>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-              {/* Selected Deed Preview */}
-              {selectedDeed && (
-                <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+        {deedResult && (
+          <div className="space-y-6 max-w-4xl mx-auto">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  Deed Information
+                </CardTitle>
+                {deedResult.deed.status === 'ACTIVE' && (
+                  <Dialog open={isTransferOpen} onOpenChange={setIsTransferOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="gap-2">
+                        <ArrowRightLeft className="h-4 w-4" />
+                        Transfer Ownership
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Transfer Ownership</DialogTitle>
+                      </DialogHeader>
+                      <div className="py-4">
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Create a new deed to transfer ownership from the current owner.
+                          The current deed ({deedResult.deed.deedNumber}) will be marked as TRANSFERRED.
+                        </p>
+                        <DeedForm 
+                          onSubmit={handleTransfer} 
+                          onCancel={() => setIsTransferOpen(false)}
+                          initialData={{ landNumber: deedResult.deed.landNumber }}
+                        />
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Deed Details</h4>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-muted-foreground">Owner:</span>
-                      <p className="font-medium text-foreground">{selectedDeed.ownerName}</p>
+                      <Label className="text-muted-foreground">Deed Number</Label>
+                      <div className="font-medium">{deedResult.deed.deedNumber}</div>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">District:</span>
-                      <p className="font-medium text-foreground">{selectedDeed.district}</p>
+                      <Label className="text-muted-foreground">Registration Date</Label>
+                      <div className="font-medium">{new Date(deedResult.deed.registrationDate).toLocaleDateString()}</div>
                     </div>
-                    <div className="col-span-2">
-                      <span className="text-muted-foreground flex items-center gap-1">
-                        <Hash className="h-3.5 w-3.5" /> Stored Hash:
-                      </span>
-                      <p className="font-mono text-xs text-foreground break-all mt-1">
-                        {selectedDeed.generatedHash}
-                      </p>
+                    <div>
+                      <Label className="text-muted-foreground">Type</Label>
+                      <div className="font-medium">{deedResult.deed.deedType}</div>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Status</Label>
+                      <div>
+                        <Badge variant={deedResult.deed.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                          {deedResult.deed.status}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 </div>
-              )}
 
-              {/* Verify Button */}
-              <Button
-                variant="hero"
-                size="xl"
-                className="w-full mt-4"
-                onClick={handleVerify}
-                disabled={!selectedDeedId || isVerifying}
-              >
-                {isVerifying ? (
-                  <>
-                    <div className="h-5 w-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
-                    Verifying...
-                  </>
-                ) : (
-                  <>
-                    <Shield className="h-5 w-5 mr-2" />
-                    Verify Data Integrity
-                  </>
-                )}
-              </Button>
-            </div>
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Owner Details</h4>
+                  {deedResult.owner ? (
+                    <div className="space-y-2">
+                      <div>
+                        <Label className="text-muted-foreground">Full Name</Label>
+                        <div className="font-medium">{deedResult.owner.fullName}</div>
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground">NIC</Label>
+                        <div className="font-medium">{deedResult.owner.nic}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-destructive">Owner information not found.</div>
+                  )}
+                </div>
+
+                <div className="space-y-4 md:col-span-2">
+                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Land Details</h4>
+                  {deedResult.land ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <Label className="text-muted-foreground">Land Number</Label>
+                        <div className="font-medium">{deedResult.land.landNumber}</div>
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground">District</Label>
+                        <div className="font-medium">{deedResult.land.district}</div>
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground">Area</Label>
+                        <div className="font-medium">{deedResult.land.area}</div>
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground">Map Ref</Label>
+                        <div className="font-medium">{deedResult.land.mapReference}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-destructive">Land information not found.</div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
-
-          {/* Verification Result */}
-          {verificationResult && (
-            <VerificationResult
-              isValid={verificationResult.isValid}
-              currentHash={verificationResult.currentHash}
-              storedHash={verificationResult.storedHash}
-              deedNumber={verificationResult.deedNumber}
-            />
-          )}
-
-          {/* Info Card */}
-          <div className="mt-8 p-6 rounded-xl border border-border bg-muted/30">
-            <h3 className="font-display text-lg font-semibold text-foreground mb-3">
-              How Verification Works
-            </h3>
-            <ol className="space-y-3 text-sm text-muted-foreground">
-              <li className="flex items-start gap-3">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium shrink-0">1</span>
-                The system retrieves the deed data from the off-chain database.
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium shrink-0">2</span>
-                A SHA-256 hash is computed from all current data fields.
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium shrink-0">3</span>
-                The computed hash is compared with the hash stored on-chain.
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium shrink-0">4</span>
-                If hashes match → data is valid. If different → tampering detected.
-              </li>
-            </ol>
-          </div>
-        </div>
+        )}
       </main>
     </div>
   );
