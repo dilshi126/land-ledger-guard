@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, Hash, ArrowRight, Shield, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, Hash, ArrowRight, Shield, AlertTriangle, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface VerificationResultProps {
@@ -45,6 +45,10 @@ export function VerificationResult({ isValid, currentHash, storedHash, deedNumbe
               Deed: {deedNumber}
             </p>
           )}
+          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            Verified at: {new Date().toLocaleString()}
+          </p>
         </div>
       </div>
 

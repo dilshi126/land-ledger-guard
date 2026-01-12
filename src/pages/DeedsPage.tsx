@@ -27,7 +27,7 @@ const DeedsPage = () => {
             Land & Deed Registration
           </h1>
           <p className="text-muted-foreground">
-            Follow the steps to register a new land property and deed.
+            Follow the steps below to register a new land property and deed in the national registry.
           </p>
         </div>
 

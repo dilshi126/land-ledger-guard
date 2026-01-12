@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getLand, getDeed, getOwnershipHistory, getOwner } from '@/lib/deedStorage';
 import { Land, Deed, Owner } from '@/lib/types';
-import { Search, MapPin, FileText, History, ArrowRightLeft } from 'lucide-react';
+import { Search, MapPin, FileText, History, ArrowRightLeft, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
@@ -18,6 +18,7 @@ const VerifyPage = () => {
   const navigate = useNavigate();
   const [searchType, setSearchType] = useState<'land' | 'deed'>('land');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const [landResult, setLandResult] = useState<{ land: Land, history: Deed[], currentDeed?: Deed, currentOwner?: Owner } | null>(null);
   const [deedResult, setDeedResult] = useState<{ deed: Deed, owner: Owner | undefined, land: Land | undefined, history: Deed[] } | null>(null);
   const [error, setError] = useState('');
@@ -87,7 +88,16 @@ const VerifyPage = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <Button type="submit">Search</Button>
+              <Button type="submit" disabled={isSearching}>
+                {isSearching ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Searching...
+                  </>
+                ) : (
+                  'Search'
+                )}
+              </Button>
             </form>
           </Tabs>
 

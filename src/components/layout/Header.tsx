@@ -1,4 +1,4 @@
-import { Database, FileCheck, LogOut, LogIn, Home } from 'lucide-react';
+import { Database, FileCheck, LogOut, LogIn, Home, Shield } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -28,6 +28,7 @@ export function Header() {
       {/* Top government banner */}
       <div className="bg-primary text-primary-foreground py-1">
         <div className="container text-center text-xs font-medium tracking-wide">
+          <Shield className="inline h-3 w-3 mr-1" />
           Government of Sri Lanka — Official Land Registry Portal
         </div>
       </div>
