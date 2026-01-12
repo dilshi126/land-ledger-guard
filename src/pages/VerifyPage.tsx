@@ -88,7 +88,16 @@ const VerifyPage = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <Button type="submit">Search</Button>
+              <Button type="submit" disabled={isSearching}>
+                {isSearching ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Searching...
+                  </>
+                ) : (
+                  'Search'
+                )}
+              </Button>
             </form>
           </Tabs>
 
