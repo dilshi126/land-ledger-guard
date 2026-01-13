@@ -6,9 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getLand, getDeed, getOwnershipHistory, getOwner, searchDeeds } from '@/lib/deedStorage';
+import { getLand, getDeed, getOwnershipHistory, getOwner, searchDeeds, deleteDeed } from '@/lib/deedStorage';
 import { Land, Deed, Owner } from '@/lib/types';
-import { Search, MapPin, FileText, History, Edit, Loader2 } from 'lucide-react';
+import { Search, MapPin, FileText, History, Edit, Loader2, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
@@ -59,6 +59,30 @@ const VerifyPage = () => {
       } else {
         setError(`Deed with number ${searchQuery} not found.`);
       }
+    }
+  };
+
+  const handleDelete = async (deedNumber: string) => {
+    if (!window.confirm(`Are you sure you want to delete deed ${deedNumber}? This action cannot be undone.`)) {
+      return;
+    }
+    
+    try {
+      await deleteDeed(deedNumber, user?.username);
+      toast({
+        title: "Deed Deleted",
+        description: `Deed ${deedNumber} has been successfully deleted.`,
+      });
+      // Clear results
+      setLandResult(null);
+      setDeedResult(null);
+      setSearchQuery('');
+    } catch (err: any) {
+      toast({
+        title: "Delete Failed",
+        description: err.message || "Could not delete deed.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -123,14 +147,24 @@ const VerifyPage = () => {
                     Deed Information
                   </CardTitle>
                   {landResult.currentDeed.status === 'ACTIVE' && (
-                    <Button 
-                      variant="outline" 
-                      className="gap-2"
-                      onClick={() => navigate(`/edit/${landResult.currentDeed!.deedNumber}`)}
-                    >
-                      <Edit className="h-4 w-4" />
-                      Edit Deed
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        className="gap-2"
+                        onClick={() => navigate(`/edit/${landResult.currentDeed!.deedNumber}`)}
+                      >
+                        <Edit className="h-4 w-4" />
+                        Edit Deed
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        className="gap-2"
+                        onClick={() => handleDelete(landResult.currentDeed!.deedNumber)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </Button>
+                    </div>
                   )}
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -277,14 +311,24 @@ const VerifyPage = () => {
                   Deed Information
                 </CardTitle>
                 {deedResult.deed.status === 'ACTIVE' && (
-                  <Button 
-                    variant="outline" 
-                    className="gap-2"
-                    onClick={() => navigate(`/edit/${deedResult.deed.deedNumber}`)}
-                  >
-                    <Edit className="h-4 w-4" />
-                    Edit Deed
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="gap-2"
+                      onClick={() => navigate(`/edit/${deedResult.deed.deedNumber}`)}
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit Deed
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      className="gap-2"
+                      onClick={() => handleDelete(deedResult.deed.deedNumber)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
                 )}
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">

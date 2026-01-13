@@ -245,4 +245,41 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// Delete deed
+router.delete('/:id', async (req, res) => {
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { id } = req.params;
+    const { username } = req.body;
+
+    // Validate existence
+    const check = await client.query('SELECT * FROM deeds WHERE deed_number = $1', [id]);
+    if (check.rows.length === 0) {
+      return res.status(404).json({ msg: 'Deed not found' });
+    }
+
+    const deedToDelete = check.rows[0];
+
+    // Delete the deed
+    await client.query('DELETE FROM deeds WHERE deed_number = $1', [id]);
+
+    // Record Audit Log
+    const user = username || 'Admin';
+    await client.query(
+      'INSERT INTO audit_logs ("user", action, details) VALUES ($1, $2, $3)',
+      [user, 'DELETE', `Deleted deed: ${id} for land ${deedToDelete.land_number}, owner: ${deedToDelete.owner_nic}`]
+    );
+
+    await client.query('COMMIT');
+    res.json({ msg: `Deed ${id} deleted successfully` });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;

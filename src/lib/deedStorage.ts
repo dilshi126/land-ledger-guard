@@ -132,6 +132,20 @@ export async function registerDeed(deed: Deed, username?: string): Promise<Deed>
   return response.json();
 }
 
+export async function deleteDeed(deedNumber: string, username?: string): Promise<void> {
+  const body = username ? { username } : {};
+  const response = await fetch(`${API_URL}/deeds/${deedNumber}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.msg || 'Failed to delete deed');
+  }
+}
+
 // Transfer function removed
 // export async function transferOwnership(...) { ... }
 
